@@ -4,13 +4,15 @@ import { nanoid } from 'nanoid';
 import { namespace, taskQueueName } from './types/shared';
 
 // Cliente para testar workflow dinâmico
-import { dynamicApprovalWorkflow } from './workflows';
+import { dynamicWorkflow } from './workflows';
 import { 
   expenseApprovalWorkflow, 
   complexApprovalWorkflow,
+  notifyCardCreationWorkflow,
   sampleExpenseData,
   sampleHighValueExpenseData,
-  sampleLowValueExpenseData 
+  sampleLowValueExpenseData,
+  sampleCardCreationData
 } from './examples/workflow-examples';
 
 async function runDynamicWorkflow() {
@@ -22,8 +24,8 @@ async function runDynamicWorkflow() {
 
   // Teste 1: Despesa de valor médio (requer aprovação de gerente)
   console.log('1. Testando despesa de valor médio ($1,500):');
-  const handle1 = await client.workflow.start(dynamicApprovalWorkflow, {
-    args: [expenseApprovalWorkflow, sampleExpenseData],
+  const handle1 = await client.workflow.start(dynamicWorkflow, {
+    args: [{ config: expenseApprovalWorkflow, input: sampleExpenseData }],
     taskQueue: taskQueueName,
     workflowId: 'expense-approval-' + nanoid(),
   });
@@ -34,8 +36,8 @@ async function runDynamicWorkflow() {
 
   // Teste 2: Despesa de alto valor (requer aprovação de diretor)
   console.log('2. Testando despesa de alto valor ($15,000):');
-  const handle2 = await client.workflow.start(dynamicApprovalWorkflow, {
-    args: [complexApprovalWorkflow, sampleHighValueExpenseData],
+  const handle2 = await client.workflow.start(dynamicWorkflow, {
+    args: [{ config: complexApprovalWorkflow, input: sampleHighValueExpenseData }],
     taskQueue: taskQueueName,
     workflowId: 'complex-approval-' + nanoid(),
   });
@@ -46,8 +48,8 @@ async function runDynamicWorkflow() {
 
   // Teste 3: Despesa de baixo valor (aprovada automaticamente)
   console.log('3. Testando despesa de baixo valor ($500):');
-  const handle3 = await client.workflow.start(dynamicApprovalWorkflow, {
-    args: [expenseApprovalWorkflow, sampleLowValueExpenseData],
+  const handle3 = await client.workflow.start(dynamicWorkflow, {
+    args: [{ config: expenseApprovalWorkflow, input: sampleLowValueExpenseData }],
     taskQueue: taskQueueName,
     workflowId: 'low-value-approval-' + nanoid(),
   });
@@ -55,6 +57,14 @@ async function runDynamicWorkflow() {
   const result3 = await handle3.result();
   console.log('Resultado:', JSON.stringify(result3, null, 2));
   console.log('\n');
+  
+  // Teste 4: Workflow de notificação de criação de cartão
+  console.log('4. Testando workflow de notificação de criação de cartão:');
+  const handle4 = await client.workflow.start(dynamicWorkflow, {
+    args: [{ config: notifyCardCreationWorkflow, input: sampleCardCreationData }],
+    taskQueue: taskQueueName,
+    workflowId: 'card-creation-notification-' + nanoid(),
+  });
 }
 
 // Função para executar workflow dinâmico com configuração customizada
@@ -66,8 +76,8 @@ export async function runCustomWorkflow(
     namespace,
   });
 
-  const handle = await client.workflow.start(dynamicApprovalWorkflow, {
-    args: [workflowConfig, inputData],
+  const handle = await client.workflow.start(dynamicWorkflow, {
+    args: [{ config: workflowConfig, input: inputData }],
     taskQueue: taskQueueName,
     workflowId: 'custom-workflow-' + nanoid(),
   });

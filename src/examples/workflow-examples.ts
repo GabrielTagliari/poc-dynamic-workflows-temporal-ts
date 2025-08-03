@@ -250,6 +250,63 @@ export const complexApprovalWorkflow: DynamicWorkflowConfig = {
   ]
 };
 
+export const notifyCardCreationWorkflow: DynamicWorkflowConfig = {
+  "id": "simple-card-notification-v1",
+  "name": "Notificação de Cartão",
+  "description": "Envia notificação se o valor do cartão for alto",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "trigger-card-created",
+      "type": "trigger",
+      "label": "When Card is created",
+      "position": { x: 100, y: 50 },
+      "data": {
+        "triggerType": "card_created"
+      }
+    },
+    {
+      "id": "condition-amount-high",
+      "type": "condition",
+      "label": "If Amount > 1000",
+      "position": { x: 100, y: 150 },
+      "data": {
+        "conditionField": "amount",
+        "conditionOperator": "greater_than",
+        "conditionValue": 1000.00
+      }
+    },
+    {
+      "id": "action-send-notification",
+      "type": "action",
+      "label": "Send Notification",
+      "position": { x: 100, y: 250 },
+      "data": {
+        "actionType": "send_notification",
+        "actionParams": {
+          "recipient": "financeiro@empresa.com",
+          "message": "Novo cartão com valor acima de R$1000",
+          "type": "email"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "source": "trigger-card-created",
+      "target": "condition-amount-high",
+      "label": "Start"
+    },
+    {
+      "id": "edge-2",
+      "source": "condition-amount-high",
+      "target": "action-send-notification",
+      "label": "True"
+    }
+  ]
+}
+
 // Função para criar configuração de workflow a partir de JSON
 export function createWorkflowFromJSON(jsonConfig: any): DynamicWorkflowConfig {
   return {
@@ -289,4 +346,13 @@ export const sampleLowValueExpenseData = {
   requesterId: 'user789',
   department: 'HR',
   date: '2024-01-15'
-}; 
+};
+
+export const sampleCardCreationData = {
+  amount: 1200.00,
+  description: 'Compra de cartão',
+  category: 'card',
+  requesterId: 'user123',
+  department: 'IT',
+  date: '2024-01-15'
+};

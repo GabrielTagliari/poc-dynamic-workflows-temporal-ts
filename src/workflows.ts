@@ -11,9 +11,11 @@ import type {
   WorkflowNode
 } from './types/shared';
 
-export async function dynamicApprovalWorkflow(
-  config: DynamicWorkflowConfig,
-  input: Record<string, any>
+export async function dynamicWorkflow(
+  params: {
+    config: DynamicWorkflowConfig;
+    input: Record<string, any>;
+  }
 ): Promise<{
   workflowId: string;
   status: string;
@@ -38,14 +40,14 @@ export async function dynamicApprovalWorkflow(
   // Criar contexto de execução
   const context: WorkflowExecutionContext = {
     workflowId: `workflow_${Date.now()}`,
-    input,
-    context: { ...input },
+    input: params.input,
+    context: { ...params.input },
     visitedNodes: new Set(),
     results: new Map()
   };
 
   // Encontrar o nó inicial (trigger)
-  const startNode = config.nodes.find(node => node.type === 'trigger');
+  const startNode = params.config.nodes.find(node => node.type === 'trigger');
   if (!startNode) {
     throw new ApplicationFailure('No trigger node found in workflow configuration');
   }
@@ -55,8 +57,8 @@ export async function dynamicApprovalWorkflow(
   let maxIterations = 100; // Prevenir loops infinitos
   let iteration = 0;
 
-  console.log(`Starting dynamic workflow: ${config.name} (${config.id})`);
-  console.log(`Input data:`, input);
+  console.log(`Starting dynamic workflow: ${params.config.name} (${params.config.id})`);
+  console.log(`Input data:`, params.input);
 
   while (currentNode && iteration < maxIterations) {
     iteration++;
@@ -73,7 +75,7 @@ export async function dynamicApprovalWorkflow(
       context.results.set(currentNode.id, result);
       
       // Encontrar próximo nó baseado nas edges
-      const nextNode = await findNextNode(currentNode, config, context, evaluateCondition);
+      const nextNode = await findNextNode(currentNode, params.config, context, evaluateCondition);
       
       if (!nextNode) {
         console.log(`No next node found. Workflow completed.`);
@@ -93,7 +95,7 @@ export async function dynamicApprovalWorkflow(
   }
 
   // Determinar status final
-  const finalStatus = determineFinalStatus(context, config);
+  const finalStatus = determineFinalStatus(context, params.config);
 
   return {
     workflowId: context.workflowId,

@@ -3,7 +3,7 @@ import { after, before, it } from 'mocha';
 import { Worker } from '@temporalio/worker';
 import { strict as assert } from 'assert';
 import * as activities from '../activities';
-import { dynamicApprovalWorkflow } from '../workflows';
+import { dynamicWorkflow } from '../workflows';
 import type { DynamicWorkflowConfig } from '../types/shared';
 
 describe('Dynamic Workflow Tests', () => {
@@ -67,7 +67,7 @@ describe('Dynamic Workflow Tests', () => {
     const inputData = { testField: 'testValue' };
 
     await worker.runUntil(async () => {
-      const result = await client.workflow.execute(dynamicApprovalWorkflow, {
+      const result = await client.workflow.execute(dynamicWorkflow, {
         args: [workflowConfig, inputData],
         workflowId: 'dynamic-workflow-test',
         taskQueue,
@@ -150,7 +150,7 @@ describe('Dynamic Workflow Tests', () => {
     const inputData = { value: 15 };
 
     await worker.runUntil(async () => {
-      const result = await client.workflow.execute(dynamicApprovalWorkflow, {
+      const result = await client.workflow.execute(dynamicWorkflow, {
         args: [workflowConfig, inputData],
         workflowId: 'condition-workflow-test',
         taskQueue,
