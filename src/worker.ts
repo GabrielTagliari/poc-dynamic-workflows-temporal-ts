@@ -1,7 +1,7 @@
-// @@@SNIPSTART money-transfer-project-template-ts-worker
+// @@@SNIPSTART dynamic-workflow-project-template-ts-worker
 import { Worker } from '@temporalio/worker';
 import * as activities from './activities';
-import { namespace, taskQueueName } from './shared';
+import { namespace, taskQueueName } from './types/shared';
 
 async function run() {
   // Register Workflows and Activities with the Worker and connect to

@@ -1,16 +1,16 @@
 import { TestWorkflowEnvironment } from '@temporalio/testing';
-import { WorkflowFailedError } from '@temporalio/client';
 import { after, before, it } from 'mocha';
 import { Worker } from '@temporalio/worker';
-import assert from 'assert';
+import { strict as assert } from 'assert';
 import * as activities from '../activities';
-import { moneyTransfer } from '../workflows';
-import type { PaymentDetails } from '../shared';
+import { dynamicApprovalWorkflow } from '../workflows';
+import type { DynamicWorkflowConfig } from '../types/shared';
 
-describe('Money Transfer workflow', () => {
+describe('Dynamic Workflow Tests', () => {
   let testEnv: TestWorkflowEnvironment;
+  
   before(async function () {
-    // this.timeout(_000);
+    this.timeout(10000);
     testEnv = await TestWorkflowEnvironment.createLocal();
   });
 
@@ -18,7 +18,7 @@ describe('Money Transfer workflow', () => {
     await testEnv?.teardown();
   });
 
-  it('successfully withdraws and deposits given existing bank account information', async () => {
+  it('should execute a simple workflow with trigger and action', async () => {
     const { client, nativeConnection } = testEnv;
     const taskQueue = 'test';
 
@@ -26,34 +26,61 @@ describe('Money Transfer workflow', () => {
       connection: nativeConnection,
       taskQueue,
       workflowsPath: require.resolve('../workflows'),
-      activities: {
-        withdraw: async () => 'w1234567890',
-        deposit: async () => 'd1234567890',
-      },
+      activities,
     });
 
-    const details: PaymentDetails = {
-      amount: 400,
-      sourceAccount: '85-150',
-      targetAccount: '43-812',
-      referenceId: '12345',
+    const workflowConfig: DynamicWorkflowConfig = {
+      id: 'simple-test',
+      name: 'Simple Test Workflow',
+      version: '1.0.0',
+      nodes: [
+        {
+          id: 'trigger',
+          type: 'trigger',
+          label: 'Test Trigger',
+          position: { x: 100, y: 50 },
+          data: { triggerType: 'test_trigger' }
+        },
+        {
+          id: 'action',
+          type: 'action',
+          label: 'Test Action',
+          position: { x: 100, y: 150 },
+          data: {
+            actionType: 'log_activity',
+            actionParams: {
+              message: 'Test workflow executed',
+              level: 'info'
+            }
+          }
+        }
+      ],
+      edges: [
+        {
+          id: 'edge-1',
+          source: 'trigger',
+          target: 'action'
+        }
+      ]
     };
 
+    const inputData = { testField: 'testValue' };
+
     await worker.runUntil(async () => {
-      const result = await client.workflow.execute(moneyTransfer, {
-        args: [details],
-        workflowId: 'money-transfer-test-workflow',
+      const result = await client.workflow.execute(dynamicApprovalWorkflow, {
+        args: [workflowConfig, inputData],
+        workflowId: 'dynamic-workflow-test',
         taskQueue,
       });
 
-      assert.equal(
-        result,
-        'Transfer complete (transaction IDs: w1234567890, d1234567890)'
-      );
+      assert.equal(result.status, 'EXECUTED');
+      assert.equal(result.executionPath.length, 2);
+      assert.equal(result.executionPath[0], 'trigger');
+      assert.equal(result.executionPath[1], 'action');
     });
   });
 
-  it('moneyTransfer deposit fails if the target account number does not exist', async () => {
+  it('should execute workflow with condition', async () => {
     const { client, nativeConnection } = testEnv;
     const taskQueue = 'test';
 
@@ -64,97 +91,76 @@ describe('Money Transfer workflow', () => {
       activities,
     });
 
-    const invalidDetails: PaymentDetails = {
-      amount: 400,
-      sourceAccount: '85-150',
-      targetAccount: '401-812',
-      referenceId: '12345',
+    const workflowConfig: DynamicWorkflowConfig = {
+      id: 'condition-test',
+      name: 'Condition Test Workflow',
+      version: '1.0.0',
+      nodes: [
+        {
+          id: 'trigger',
+          type: 'trigger',
+          label: 'Test Trigger',
+          position: { x: 100, y: 50 },
+          data: { triggerType: 'test_trigger' }
+        },
+        {
+          id: 'condition',
+          type: 'condition',
+          label: 'Test Condition',
+          position: { x: 100, y: 150 },
+          data: {
+            conditionField: 'value',
+            conditionOperator: 'greater_than',
+            conditionValue: 10
+          }
+        },
+        {
+          id: 'action',
+          type: 'action',
+          label: 'Test Action',
+          position: { x: 100, y: 250 },
+          data: {
+            actionType: 'log_activity',
+            actionParams: {
+              message: 'Condition met',
+              level: 'info'
+            }
+          }
+        }
+      ],
+      edges: [
+        {
+          id: 'edge-1',
+          source: 'trigger',
+          target: 'condition'
+        },
+        {
+          id: 'edge-2',
+          source: 'condition',
+          target: 'action',
+          condition: {
+            field: 'value',
+            operator: 'greater_than',
+            value: 10
+          }
+        }
+      ]
     };
 
-    let isWorkflowFailedError = false;
-    try {
-      await worker.runUntil(async () => {
-        await client.workflow.execute(moneyTransfer, {
-          args: [invalidDetails],
-          workflowId: 'money-transfer-test-workflow',
-          taskQueue,
-        });
+    const inputData = { value: 15 };
+
+    await worker.runUntil(async () => {
+      const result = await client.workflow.execute(dynamicApprovalWorkflow, {
+        args: [workflowConfig, inputData],
+        workflowId: 'condition-workflow-test',
+        taskQueue,
       });
-    } catch (err) {
-      if (err instanceof WorkflowFailedError) {
-        isWorkflowFailedError = true;
-      }
-    }
-    assert.equal(isWorkflowFailedError, true);
-  });
 
-  it('moneyTransfer withdrawal fails if the source account number does not exist', async () => {
-    const { client, nativeConnection } = testEnv;
-    const taskQueue = 'test';
-
-    const worker = await Worker.create({
-      connection: nativeConnection,
-      taskQueue,
-      workflowsPath: require.resolve('../workflows'),
-      activities,
+      assert.equal(result.status, 'EXECUTED');
+      assert.equal(result.executionPath.length, 3);
+      assert.equal(result.executionPath[0], 'trigger');
+      assert.equal(result.executionPath[1], 'condition');
+      assert.equal(result.executionPath[2], 'action');
     });
-
-    const invalidDetails: PaymentDetails = {
-      amount: 400,
-      sourceAccount: '801-150',
-      targetAccount: '43-812',
-      referenceId: '12345',
-    };
-
-    let isWorkflowFailedError = false;
-    try {
-      await worker.runUntil(async () => {
-        await client.workflow.execute(moneyTransfer, {
-          args: [invalidDetails],
-          workflowId: 'money-transfer-test-workflow',
-          taskQueue,
-        });
-      });
-    } catch (err) {
-      if (err instanceof WorkflowFailedError) {
-        isWorkflowFailedError = true;
-      }
-    }
-    assert.equal(isWorkflowFailedError, true);
-  });
-
-  it('moneyTransfer withdrawal fails if the amount being withdrawn is greater than the amount that the bank has', async () => {
-    const { client, nativeConnection } = testEnv;
-    const taskQueue = 'test';
-
-    const worker = await Worker.create({
-      connection: nativeConnection,
-      taskQueue,
-      workflowsPath: require.resolve('../workflows'),
-      activities,
-    });
-
-    const invalidDetails: PaymentDetails = {
-      amount: 4000,
-      sourceAccount: '801-150',
-      targetAccount: '43-812',
-      referenceId: '12345',
-    };
-
-    let isWorkflowFailedError = false;
-    try {
-      await worker.runUntil(async () => {
-        await client.workflow.execute(moneyTransfer, {
-          args: [invalidDetails],
-          workflowId: 'money-transfer-test-workflow',
-          taskQueue,
-        });
-      });
-    } catch (err) {
-      if (err instanceof WorkflowFailedError) {
-        isWorkflowFailedError = true;
-      }
-    }
-    assert.equal(isWorkflowFailedError, true);
   });
 });
