@@ -1,5 +1,5 @@
 /* eslint-disable @temporalio/eslint/no-unused-vars */
-import { proxyActivities } from '@temporalio/workflow';
+import { proxyActivities, defineSignal, setHandler, condition } from '@temporalio/workflow';
 import { ApplicationFailure } from '@temporalio/common';
 
 import type * as activities from './activities';
@@ -10,6 +10,13 @@ import type {
   WorkflowExecutionContext, 
   WorkflowNode
 } from './types/shared';
+
+// export const approveSignal = defineSignal('approve');
+
+// define a estrutura do input do signal
+interface ApproveInput { userType: string; status: string; }
+// define o signal com a estrutura do input e seu nome
+export const approveSignal = defineSignal<[ApproveInput]>("approve");
 
 export async function dynamicWorkflow(
   params: {
@@ -25,6 +32,7 @@ export async function dynamicWorkflow(
   
   // Configurar atividades para o workflow dinâmico
   const { 
+    requireSignal, // Atividade para solicitar signal
     evaluateCondition, 
     executeAction 
   } = proxyActivities<typeof activities>({
@@ -56,6 +64,13 @@ export async function dynamicWorkflow(
   let currentNode = startNode;
   let maxIterations = 100; // Prevenir loops infinitos
   let iteration = 0;
+  let isApprovedTimes = 0; // Contador de vezes que o workflow foi aprovado
+
+  // Configurar o handler do signal para o workflow
+  setHandler(approveSignal, (input: ApproveInput) => {
+    if (input.userType === 'manager' && input.status === 'approved') {
+    isApprovedTimes++;
+  }});
 
   console.log(`Starting dynamic workflow: ${params.config.name} (${params.config.id})`);
   console.log(`Input data:`, params.input);
@@ -63,6 +78,11 @@ export async function dynamicWorkflow(
   while (currentNode && iteration < maxIterations) {
     iteration++;
     
+    // Aqui se o signal não for enviado, o workflow continua aguardando o signal
+    if (await requireSignal({ signalId: 'approve' })) { // Solicitação de signal para o workflow
+      await condition(() => isApprovedTimes === 3); // Condição para verificar se o workflow foi aprovado 3 vezes
+    }
+
     // Marcar nó como visitado
     context.visitedNodes.add(currentNode.id);
     executionPath.push(currentNode.id);

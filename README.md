@@ -14,11 +14,23 @@ Este projeto implementa um sistema de workflows dinâmicos baseados em configura
 ## 🚀 Como Executar
 
 ### Pré-requisitos
-1. Certifique-se de que o Temporal Server está rodando localmente
+1. Certifique-se de que o Temporal Server está rodando localmente (comando abaixo):
+```bash
+temporal server start-dev
+```
+
 2. Node.js 18+ instalado
 
 ### Instalação e Execução
+
+Se estiver criando um projeto novo, use `npx @temporalio/create`, e os pacotes serão instalados automaticamente.
+
+Para adicionar o Temporal a um projeto existente, instale os pacotes manualmente com `npm install @temporalio/client @temporalio/worker @temporalio/workflow`
+
 ```bash
+# Instalar Temporal CLI
+brew install temporal
+
 # Instalar dependências
 npm install
 

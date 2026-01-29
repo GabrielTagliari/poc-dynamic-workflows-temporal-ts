@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 import { namespace, taskQueueName } from './types/shared';
 
 // Cliente para testar workflow dinâmico
-import { dynamicWorkflow } from './workflows';
+import { approveSignal, dynamicWorkflow } from './workflows';
 import { 
   expenseApprovalWorkflow, 
   complexApprovalWorkflow,
@@ -29,6 +29,10 @@ async function runDynamicWorkflow() {
     taskQueue: taskQueueName,
     workflowId: 'expense-approval-' + nanoid(),
   });
+  // enviando signal para o workflow
+  await handle1.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle1.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle1.signal(approveSignal, { userType: 'manager', status: 'reproved' });
 
   const result1 = await handle1.result();
   console.log('Resultado:', JSON.stringify(result1, null, 2));
@@ -42,6 +46,11 @@ async function runDynamicWorkflow() {
     workflowId: 'complex-approval-' + nanoid(),
   });
 
+  // enviando signal para o workflow
+  await handle2.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle2.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle2.signal(approveSignal, { userType: 'manager', status: 'approved' });
+
   const result2 = await handle2.result();
   console.log('Resultado:', JSON.stringify(result2, null, 2));
   console.log('\n');
@@ -54,6 +63,11 @@ async function runDynamicWorkflow() {
     workflowId: 'low-value-approval-' + nanoid(),
   });
 
+  // enviando signal para o workflow
+  await handle3.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle3.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle3.signal(approveSignal, { userType: 'manager', status: 'approved' });
+
   const result3 = await handle3.result();
   console.log('Resultado:', JSON.stringify(result3, null, 2));
   console.log('\n');
@@ -65,6 +79,15 @@ async function runDynamicWorkflow() {
     taskQueue: taskQueueName,
     workflowId: 'card-creation-notification-' + nanoid(),
   });
+
+  // enviando signal para o workflow
+  await handle4.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle4.signal(approveSignal, { userType: 'manager', status: 'approved' });
+  await handle4.signal(approveSignal, { userType: 'manager', status: 'approved' });
+
+  const result4 = await handle4.result();
+  console.log('Resultado:', JSON.stringify(result4, null, 2));
+  console.log('\n');
 }
 
 // Função para executar workflow dinâmico com configuração customizada

@@ -69,6 +69,15 @@ export async function executeAction(
   }
 }
 
+// Atividade para solicitar signal
+export async function requireSignal(
+  params: Record<string, any>
+): Promise<{ signaled: boolean; signalId: string }> {
+  const { signalId } = params;
+  console.log(`Requesting signal: ${signalId}`);
+  return { signaled: true, signalId };
+}
+
 // Atividade para solicitar aprovação
 export async function requireApproval(
   params: Record<string, any>,
